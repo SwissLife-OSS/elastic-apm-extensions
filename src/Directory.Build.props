@@ -1,12 +1,47 @@
 <Project>
+  <Import Project="$([MSBuild]::GetPathOfFileAbove('Dependencies.props', '$(MSBuildThisFileDirectory)'))" />
+  <Import Project="$([MSBuild]::GetPathOfFileAbove('Nullable.props', '$(MSBuildThisFileDirectory)'))" />
+
   <PropertyGroup>
-    <CCSourceDirectory>$(MSBuildThisFileDirectory.TrimEnd('\').TrimEnd('/'))</CCSourceDirectory>
-    <CCSettingsProps>$([System.IO.Path]::Combine($(CCSourceDirectory), 'Settings.props'))</CCSettingsProps>
-    <CCVersionProps>$([System.IO.Path]::Combine($(CCSourceDirectory), 'Version.props'))</CCVersionProps>
-    <CCPackageProps>$([System.IO.Path]::Combine($(CCSourceDirectory), 'Package.props'))</CCPackageProps>
+    <TargetFramework>netstandard2.0</TargetFramework>
   </PropertyGroup>
 
-  <Import Project="$(CCSettingsProps)" Condition="Exists('$(CCSettingsProps)')"/>
-  <Import Project="$(CCVersionProps)" Condition="Exists('$(CCVersionProps)')"/>
-  <Import Project="$(CCPackageProps)" Condition="Exists('$(CCPackageProps)')"/>
+  <PropertyGroup>
+    <LangVersion>latest</LangVersion>
+    <Version Condition="$(Version) == ''">0.0.0</Version>
+    <Nullable>enable</Nullable>
+    <WarningsAsErrors>nullable</WarningsAsErrors>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <Product>Elastic APM .NET Agent Extensions</Product>
+    <Authors>Swiss Life authors and contributors</Authors>
+    <Company>Swiss Life</Company>
+    <Copyright>Copyright © $(Company) $([System.DateTime]::Now.Year)</Copyright>
+    <PackageLicenseUrl>https://github.com/SwissLife-OSS/elastic-apm-extensions/blob/master/LICENSE</PackageLicenseUrl>
+    <PackageProjectUrl>https://github.com/SwissLife-OSS/elastic-apm-extensions</PackageProjectUrl>
+    <PackageReleaseNotes>Release notes: https://github.com/SwissLife-OSS/elastic-apm-extensions/releases/$(Version)</PackageReleaseNotes>
+    <PackageRequireLicenseAcceptance>true</PackageRequireLicenseAcceptance>
+    <PackageIconUrl>https://github.com/SwissLife-OSS/elastic-apm-extensions/raw/master/logo.png</PackageIconUrl>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <PublishRepositoryUrl>true</PublishRepositoryUrl>
+    <EmbedUntrackedSources>true</EmbedUntrackedSources>
+    <RepositoryUrl>https://github.com/SwissLife-OSS/elastic-apm-extensions.git</RepositoryUrl>
+    <RepositoryType>GitHub</RepositoryType>
+    <IncludeSymbols>true</IncludeSymbols>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <DebugType>portable</DebugType>
+    <DebugSymbols>true</DebugSymbols>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.SourceLink.GitHub" Version="1.0.0" PrivateAssets="All"/>
+  </ItemGroup>
+
 </Project>

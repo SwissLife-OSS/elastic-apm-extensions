@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <RootNamespace>Elastic.Apm.Messaging.MassTransit</RootNamespace>
+    <AssemblyName>Elastic.Apm.Messaging.MassTransit</AssemblyName>
+    <PackageId>ElasticApm.Messaging.MassTransit</PackageId>
+    <IsPackable>true</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Elastic.Apm" Version="$(ElasticApmVersion)" />
+    <PackageReference Include="MassTransit" Version="$(MassTransitVersion)" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Include="..\Elastic.Apm.Internals\CompositeDisposable.cs" Link="Internals\CompositeDisposable.cs" />
+    <Compile Include="..\Shared\TracerExtensions.cs" Link="Shared\TracerExtensions.cs" />
+  </ItemGroup>
+
+</Project>
