@@ -8,12 +8,12 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Compile Include="..\Shared\TracerExtensions.cs" Link="Shared\TracerExtensions.cs" />
+    <PackageReference Include="Elastic.Apm" Version="$(ElasticApmVersion)" />
+    <PackageReference Include="HotChocolate.Execution" Version="$(HotChocolateVersion)" />
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Elastic.Apm" Version="$(ElasticApmVersion)" />
-    <PackageReference Include="HotChocolate.Execution" Version="$(HotChocolateVersion)" />
+    <Compile Include="..\Shared\TracerExtensions.cs" Link="Shared\TracerExtensions.cs" />
   </ItemGroup>
 
 </Project>

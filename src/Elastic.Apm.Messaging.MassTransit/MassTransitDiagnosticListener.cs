@@ -17,7 +17,6 @@ namespace Elastic.Apm.Messaging.MassTransit
         private readonly ConcurrentDictionary<ActivitySpanId, IExecutionSegment> _activities = 
             new ConcurrentDictionary<ActivitySpanId, IExecutionSegment>();
 
-
         internal MassTransitDiagnosticListener(IApmAgent apmAgent)
         {
             _apmAgent = apmAgent;
