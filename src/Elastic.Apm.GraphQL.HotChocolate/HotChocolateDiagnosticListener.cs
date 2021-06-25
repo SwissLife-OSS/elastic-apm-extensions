@@ -18,6 +18,8 @@ namespace Elastic.Apm.GraphQL.HotChocolate
         private readonly IConfigurationReader _configuration;
         private readonly IApmLogger _apmLogger;
 
+        private readonly IActivityScope _emptyActivityScope = new EmptyActivityScope();
+
         internal HotChocolateDiagnosticListener(
             IApmAgent apmAgent,
             IConfigurationReader configuration)
@@ -29,8 +31,10 @@ namespace Elastic.Apm.GraphQL.HotChocolate
 
         public override IActivityScope ExecuteRequest(IRequestContext context)
         {
-            ITransaction transaction = _apmAgent.Tracer.CurrentTransaction;
-            return new RequestActivityScope(context, transaction, _apmAgent);
+            ITransaction? transaction = _apmAgent.Tracer.CurrentTransaction;
+            return transaction != null
+                ? new RequestActivityScope(context, transaction, _apmAgent)
+                : _emptyActivityScope;
         }
 
         public override IActivityScope ResolveFieldValue(IMiddlewareContext context)
@@ -46,7 +50,10 @@ namespace Elastic.Apm.GraphQL.HotChocolate
                     context.Document.Definitions.Count == 1 &&
                     context.Document.Definitions[0] is OperationDefinitionNode { Name: { Value: "exec_batch" } })
                 {
-                    IExecutionSegment executionSegment = _apmAgent.Tracer.GetExecutionSegment();
+                    IExecutionSegment? executionSegment = _apmAgent.Tracer.GetExecutionSegment();
+
+                    if (executionSegment == null) return _emptyActivityScope;
+
                     ISpan span = executionSegment.StartSpan(
                         context.Field.Name!.Value, ApiConstants.TypeRequest, Constants.Apm.SubType);
 

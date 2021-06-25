@@ -12,7 +12,9 @@ namespace Elastic.Apm.GraphQL.HotChocolate
         {
             try
             {
-                IExecutionSegment executionSegment = apmAgent.Tracer.GetExecutionSegment();
+                IExecutionSegment? executionSegment = apmAgent.Tracer.GetExecutionSegment();
+                if (executionSegment == null) return;
+
                 foreach (IError error in errors)
                 {
                     var path = error.Path?.ToString();
@@ -33,7 +35,9 @@ namespace Elastic.Apm.GraphQL.HotChocolate
         {
             try
             {
-                IExecutionSegment executionSegment = apmAgent.Tracer.GetExecutionSegment();
+                IExecutionSegment? executionSegment = apmAgent.Tracer.GetExecutionSegment();
+                if (executionSegment == null) return;
+
                 executionSegment.CaptureException(exception);
 
                 // TODO: Use application ILogger ?
