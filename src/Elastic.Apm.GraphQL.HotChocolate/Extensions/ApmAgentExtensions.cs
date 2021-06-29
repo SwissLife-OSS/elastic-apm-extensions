@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using Elastic.Apm.Api;
 using IError = HotChocolate.IError;
 using LogLevel = Elastic.Apm.Logging.LogLevel;
@@ -18,7 +19,14 @@ namespace Elastic.Apm.GraphQL.HotChocolate
                 foreach (IError error in errors)
                 {
                     var path = error.Path?.ToString();
-                    executionSegment.CaptureError(error.Message, path, error.GetStackFrames());
+                    if (error.Exception != null)
+                    {
+                        executionSegment.CaptureException(error.Exception, path);
+                    }
+                    else
+                    {
+                        executionSegment.CaptureError(error.Message, path, Array.Empty<StackFrame>());
+                    }
 
                     // TODO: Use application ILogger ?
                     apmAgent.Logger.Log(LogLevel.Error, $"{error.Message} {path}", default, default);
