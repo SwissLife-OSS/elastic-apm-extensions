@@ -24,5 +24,10 @@ namespace Elastic.Apm.GraphQL.HotChocolate
             exception = context.Exception;
             return exception != null;
         }
+
+        internal static bool HasFailed(this IRequestContext context)
+        {
+            return context.Result.HasErrors(out _) || context.HasException(out _);
+        }
     }
 }

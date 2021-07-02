@@ -16,14 +16,17 @@ namespace Elastic.Apm.GraphQL.HotChocolate
     {
         private readonly IApmAgent _apmAgent;
         private readonly IConfigurationReader _configuration;
+        private readonly EnrichTransaction? _enrich;
         private readonly IApmLogger _apmLogger;
 
         internal HotChocolateDiagnosticListener(
             IApmAgent apmAgent,
-            IConfigurationReader configuration)
+            IConfigurationReader configuration,
+            EnrichTransaction? enrich)
         {
             _apmAgent = apmAgent;
             _configuration = configuration;
+            _enrich = enrich;
             _apmLogger = _apmAgent.Logger;
         }
 
@@ -31,7 +34,7 @@ namespace Elastic.Apm.GraphQL.HotChocolate
         {
             ITransaction? transaction = _apmAgent.Tracer.CurrentTransaction;
             return transaction != null
-                ? new RequestActivityScope(context, transaction, _apmAgent)
+                ? new RequestActivityScope(context, transaction, _apmAgent, _enrich)
                 : EmptyScope;
         }
 
