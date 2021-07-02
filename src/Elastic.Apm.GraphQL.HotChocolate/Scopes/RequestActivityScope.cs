@@ -16,15 +16,17 @@ namespace Elastic.Apm.GraphQL.HotChocolate
         private readonly IRequestContext _context;
         private readonly ITransaction _transaction;
         private readonly IApmAgent _apmAgent;
+        private readonly EnrichTransaction? _enrich;
 
-        internal RequestActivityScope(
-            IRequestContext context,
+        internal RequestActivityScope(IRequestContext context,
             ITransaction transaction,
-            IApmAgent apmAgent)
+            IApmAgent apmAgent,
+            EnrichTransaction? enrich)
         {
             _context = context;
             _transaction = transaction;
             _apmAgent = apmAgent;
+            _enrich = enrich;
         }
 
         public void Dispose()
@@ -37,22 +39,17 @@ namespace Elastic.Apm.GraphQL.HotChocolate
 
                 _transaction.SetLabel("selections", string.Join(";", operationDetails.Selections));
 
-                var hasFailed = false;
                 if (_context.Result.HasErrors(out IReadOnlyList<IError>? errors))
                 {
                     _apmAgent.CaptureError(errors);
-                    hasFailed = true;
                 }
 
                 if (_context.HasException(out Exception? exception))
                 {
                     _apmAgent.CaptureException(exception);
-                    hasFailed = true;
                 }
 
-                // TODO: These values are overwritten in WebRequestTransactionCreator.StopTransaction
-                _transaction.Result = hasFailed ? "Failed" : "Success";
-                _transaction.Outcome = hasFailed ? Outcome.Failure : Outcome.Success;
+                _enrich?.Invoke(_transaction, operationDetails);
             }
             catch (Exception ex)
             {
@@ -81,7 +78,7 @@ namespace Elastic.Apm.GraphQL.HotChocolate
                             : $"{selections.FirstOrDefault()} ({definitions.FirstSelectionsCount()})"
                         : selections.FirstOrDefault();
 
-                return new OperationDetails(name, rootSelection, selections);
+                return new OperationDetails(name, rootSelection, selections, _context.HasFailed());
             }
 
             return OperationDetails.Empty;
