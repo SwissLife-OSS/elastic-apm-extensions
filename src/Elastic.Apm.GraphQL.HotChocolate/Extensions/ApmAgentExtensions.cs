@@ -9,6 +9,9 @@ namespace Elastic.Apm.GraphQL.HotChocolate
 {
     internal static class ApmAgentExtensions
     {
+        private static readonly string CaptureErrorFailed = $"{nameof(CaptureError)} failed.";
+        private static readonly string CaptureExceptionFailed = $"{nameof(CaptureException)} failed.";
+
         internal static void CaptureError(this IApmAgent apmAgent, IReadOnlyList<IError> errors)
         {
             try
@@ -28,14 +31,13 @@ namespace Elastic.Apm.GraphQL.HotChocolate
                         executionSegment.CaptureError(error.Message, path, Array.Empty<StackFrame>());
                     }
 
-                    // TODO: Use application ILogger ?
-                    apmAgent.Logger.Log(LogLevel.Error, $"{error.Message} {path}", default, default);
+                    var message = $"{error.Message} {path}";
+                    apmAgent.Logger.Log(LogLevel.Error, message, default, LogFormatter.Nop);
                 }
             }
             catch (Exception ex)
             {
-                var message = "CaptureError failed.";
-                apmAgent.Logger.Log(LogLevel.Error, message, ex, default);
+                apmAgent.Logger.Log(LogLevel.Error, CaptureErrorFailed, ex, LogFormatter.Nop);
             }
         }
 
@@ -48,13 +50,11 @@ namespace Elastic.Apm.GraphQL.HotChocolate
 
                 executionSegment.CaptureException(exception);
 
-                // TODO: Use application ILogger ?
-                apmAgent.Logger.Log(LogLevel.Error, $"{exception.Message}", default, default);
+                apmAgent.Logger.Log(LogLevel.Error, exception.Message, default, LogFormatter.Nop);
             }
             catch (Exception ex)
             {
-                var message = "CaptureException failed.";
-                apmAgent.Logger.Log(LogLevel.Error, message, ex, default);
+                apmAgent.Logger.Log(LogLevel.Error, CaptureExceptionFailed, ex, LogFormatter.Nop);
             }
         }
     }
