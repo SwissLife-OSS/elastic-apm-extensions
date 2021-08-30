@@ -71,7 +71,7 @@ namespace Elastic.Apm.Messaging.MassTransit
                         Constants.Apm.Type,
                         subType,
                         Constants.Apm.SendAction);
-
+                    
                     sendContext.SetTracingData(span);
 
                     _activities.TryAdd(activity.SpanId, span);

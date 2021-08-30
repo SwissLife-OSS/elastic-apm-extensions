@@ -14,6 +14,8 @@ namespace Elastic.Apm.GraphQL.HotChocolate
 {
     internal class HotChocolateDiagnosticListener : DiagnosticEventListener
     {
+        private static readonly string ResolveFieldValueFailed = $"{nameof(ResolveFieldValue)} failed.";
+
         private readonly IApmAgent _apmAgent;
         private readonly IConfigurationReader _configuration;
         private readonly EnrichTransaction? _enrich;
@@ -63,8 +65,7 @@ namespace Elastic.Apm.GraphQL.HotChocolate
             }
             catch (Exception ex)
             {
-                var message = "ResolveField instrumentation failed.";
-                _apmLogger.Log(LogLevel.Error, message, ex, default);
+                _apmLogger.Log(LogLevel.Error, ResolveFieldValueFailed, ex, LogFormatter.Nop);
             }
 
             return EmptyScope;

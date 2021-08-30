@@ -13,6 +13,8 @@ namespace Elastic.Apm.GraphQL.HotChocolate
 {
     internal class RequestActivityScope : IActivityScope
     {
+        private static readonly string ExecuteRequestFailed = "ExecuteRequest instrumentation failed.";
+
         private readonly IRequestContext _context;
         private readonly ITransaction _transaction;
         private readonly IApmAgent _apmAgent;
@@ -53,8 +55,7 @@ namespace Elastic.Apm.GraphQL.HotChocolate
             }
             catch (Exception ex)
             {
-                var message = "ExecuteRequest instrumentation failed.";
-                _apmAgent.Logger.Log(LogLevel.Error, message, ex, default);
+                _apmAgent.Logger.Log(LogLevel.Error, ExecuteRequestFailed, ex, LogFormatter.Nop);
             }
         }
 
