@@ -1,5 +1,6 @@
 using System;
 using System.Diagnostics;
+using MassTransit;
 
 namespace Elastic.Apm.Messaging.MassTransit
 {
@@ -7,10 +8,12 @@ namespace Elastic.Apm.Messaging.MassTransit
     {
         private readonly IApmAgent _apmAgent;
         private IDisposable? _sourceSubscription;
+        private readonly Func<ReceiveContext, string> _transactionNameFunc;
 
-        internal MassTransitDiagnosticInitializer(IApmAgent apmAgent)
+        internal MassTransitDiagnosticInitializer(IApmAgent apmAgent, Func<ReceiveContext, string> transactionNameFunc)
         {
             _apmAgent = apmAgent;
+            _transactionNameFunc = transactionNameFunc;
         }
 
         public void Dispose() => _sourceSubscription?.Dispose();
@@ -28,7 +31,7 @@ namespace Elastic.Apm.Messaging.MassTransit
             if (string.Equals(value.Name, Constants.DiagnosticListener.Name,
                 StringComparison.InvariantCultureIgnoreCase))
             {
-                _sourceSubscription = value.Subscribe(new MassTransitDiagnosticListener(_apmAgent));
+                _sourceSubscription = value.Subscribe(new MassTransitDiagnosticListener(_apmAgent, _transactionNameFunc));
             }
         }
     }
