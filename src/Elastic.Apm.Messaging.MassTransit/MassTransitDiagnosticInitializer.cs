@@ -7,10 +7,12 @@ namespace Elastic.Apm.Messaging.MassTransit
     {
         private readonly IApmAgent _apmAgent;
         private IDisposable? _sourceSubscription;
+        private readonly MassTransitDiagnosticOptions _options;
 
-        internal MassTransitDiagnosticInitializer(IApmAgent apmAgent)
+        internal MassTransitDiagnosticInitializer(IApmAgent apmAgent, MassTransitDiagnosticOptions options)
         {
             _apmAgent = apmAgent;
+            _options = options;
         }
 
         public void Dispose() => _sourceSubscription?.Dispose();
@@ -28,7 +30,7 @@ namespace Elastic.Apm.Messaging.MassTransit
             if (string.Equals(value.Name, Constants.DiagnosticListener.Name,
                 StringComparison.InvariantCultureIgnoreCase))
             {
-                _sourceSubscription = value.Subscribe(new MassTransitDiagnosticListener(_apmAgent));
+                _sourceSubscription = value.Subscribe(new MassTransitDiagnosticListener(_apmAgent, _options));
             }
         }
     }
