@@ -10,15 +10,12 @@ namespace Elastic.Apm.Messaging.MassTransit
     /// </summary>
     public class MassTransitDiagnosticsSubscriber : IDiagnosticsSubscriber
     {
-        private readonly Func<ReceiveContext, string> _transactionNameFunc;
+        private MassTransitDiagnosticOptions _options;
 
-        public MassTransitDiagnosticsSubscriber()
-            : this(ctx => $"Receive {ctx.InputAddress.AbsolutePath}")
-        { }
-
-        public MassTransitDiagnosticsSubscriber(Func<ReceiveContext, string> transactionNameFunc)
+        public MassTransitDiagnosticsSubscriber(Action<MassTransitDiagnosticOptions>? configure = default)
         {
-            _transactionNameFunc = transactionNameFunc;
+            _options = new MassTransitDiagnosticOptions();
+            configure?.Invoke(_options);
         }
 
         /// <inheritdoc cref="IDiagnosticsSubscriber"/>
@@ -31,7 +28,7 @@ namespace Elastic.Apm.Messaging.MassTransit
                 return compositeDisposable;
             }
 
-            var initializer = new MassTransitDiagnosticInitializer(components, _transactionNameFunc);
+            var initializer = new MassTransitDiagnosticInitializer(components, _options);
             compositeDisposable.Add(initializer);
             compositeDisposable.Add(DiagnosticListener.AllListeners.Subscribe(initializer));
 

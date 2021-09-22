@@ -13,16 +13,16 @@ namespace Elastic.Apm.Messaging.MassTransit
     {
         private readonly IApmAgent _apmAgent;
         private readonly IApmLogger _logger;
-        private readonly Func<ReceiveContext, string> _transactionNameFunc;
+        private readonly MassTransitDiagnosticOptions _options;
 
         private readonly ConcurrentDictionary<ActivitySpanId, IExecutionSegment> _activities = 
             new ConcurrentDictionary<ActivitySpanId, IExecutionSegment>();
 
-        internal MassTransitDiagnosticListener(IApmAgent apmAgent, Func<ReceiveContext, string> transactionNameFunc)
+        internal MassTransitDiagnosticListener(IApmAgent apmAgent, MassTransitDiagnosticOptions options)
         {
             _apmAgent = apmAgent;
+            _options = options;
             _logger = apmAgent.Logger;
-            _transactionNameFunc = transactionNameFunc;
         }
 
         public void OnNext(KeyValuePair<string, object?> value)
@@ -93,7 +93,7 @@ namespace Elastic.Apm.Messaging.MassTransit
                 if (context is ReceiveContext receiveContext)
                 {
                     DistributedTracingData? tracingData = receiveContext.GetTracingData();
-                    var transactionName = _transactionNameFunc(receiveContext);
+                    var transactionName = _options.GetTransactionName(receiveContext);
 
                     ITransaction transaction = _apmAgent.Tracer.StartTransaction(
                         transactionName,
