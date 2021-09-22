@@ -1,7 +1,6 @@
 using System;
 using System.Diagnostics;
 using Elastic.Apm.DiagnosticSource;
-using MassTransit;
 
 namespace Elastic.Apm.Messaging.MassTransit
 {
