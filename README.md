@@ -5,6 +5,9 @@ Elastic APM extensions for multiple .NET libraries.
   - [X] [HotChocolate](#hotchocolate)
 
 ## MassTransit
+| Extension | MassTransit |
+| ----------|:-----------:|
+| Version 1 | Version 7   |
 ### Usage
 ```csharp
 public static IHostBuilder CreateHostBuilder(string[] args) =>
@@ -41,6 +44,10 @@ new MassTransitDiagnosticsSubscriber(o =>
 ```
 The same can be used also for `SendLabel`
 ## HotChocolate
+| Extension | HotChocolate |
+| ----------|:------------:|
+| Version 1 | Version 11   |
+| Version 2 | Version 12   |
 ### Usage
 HotChocolate by default is not emitting diagnostic events, but has the infrastructure to instrument each request.
 ```csharp
