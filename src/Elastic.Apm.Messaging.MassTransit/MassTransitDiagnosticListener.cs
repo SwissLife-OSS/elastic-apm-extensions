@@ -64,8 +64,7 @@ namespace Elastic.Apm.Messaging.MassTransit
                 IExecutionSegment? executionSegment = _apmAgent.Tracer.GetExecutionSegment();
                 if (executionSegment != null && context is SendContext sendContext)
                 {
-                    var spanName = context is PublishContext ? "Publish" : "Send";
-                    spanName = $"{spanName} {sendContext.DestinationAddress.AbsolutePath}";
+                    var spanName = $"Send {_options.GetSendLabel(sendContext)}";
                     var subType = sendContext.DestinationAddress.Scheme;
 
                     ISpan span = executionSegment.StartSpan(
@@ -93,7 +92,7 @@ namespace Elastic.Apm.Messaging.MassTransit
                 if (context is ReceiveContext receiveContext)
                 {
                     DistributedTracingData? tracingData = receiveContext.GetTracingData();
-                    var transactionName = _options.GetTransactionName(receiveContext);
+                    var transactionName = $"Receive {_options.GetReceiveLabel(receiveContext)}";
 
                     ITransaction transaction = _apmAgent.Tracer.StartTransaction(
                         transactionName,

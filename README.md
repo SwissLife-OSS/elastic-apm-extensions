@@ -1,17 +1,11 @@
 Elastic APM extensions for multiple .NET libraries.
 ## Features
 
-- Messaging
   - [X] [MassTransit](#masstrasit)
-  - [ ] Azure Service Bus
-
-- GraphQL
   - [X] [HotChocolate](#hotchocolate)
 
-- Storage
-  - [ ] Azure Blob Storage
-
-### MassTransit
+## MassTransit
+### Usage
 ```csharp
 public static IHostBuilder CreateHostBuilder(string[] args) =>
     Host.CreateDefaultBuilder(args)
@@ -27,8 +21,26 @@ public static IHostBuilder CreateHostBuilder(string[] args) =>
 The following events from the [MassTransit DiagnosticSource](https://masstransit-project.com/advanced/monitoring/diagnostic-source.html) are instrumented:
 - `Transport.Send` 
 - `Transport.Receive`
+### Options
+By default the Elastic APM send/receive label will be as follow:
+- "Send {label}" where label is [`SendContext.DestinationAddress.AbsolutePath`](https://github.com/MassTransit/MassTransit/blob/5e2a416384f005c392ead139f5c4af34511c56db/src/MassTransit/SendContext.cs#L31)
+- "Receive {label}" where label is [`ReceiveContext.InputAddress.AbsolutePath`](https://github.com/MassTransit/MassTransit/blob/5e2a416384f005c392ead139f5c4af34511c56db/src/MassTransit/ReceiveContext.cs#L24)
 
-### HotChocolate
+This can be changed when creating the `MassTransitDiagnosticsSubscriber` by providing a different label.
+```csharp
+new MassTransitDiagnosticsSubscriber(o => 
+  o.ReceiveLabel = context => context.Host.AbsolutePath)
+```
+or if you return `null`, the default label will be used.
+```csharp
+new MassTransitDiagnosticsSubscriber(o => 
+  o.ReceiveLabel = context => 
+    if (context is RabbitMqReceiveContext rabbitMqContext)
+      ? rabbitMqContext.Exchange
+      : default;)
+```
+The same can be used also for `SendLabel`
+## HotChocolate
 HotChocolate by default is not emitting diagnostic events, but has the infrastructure to instrument each request.
 ```csharp
 public class Startup
