@@ -59,7 +59,7 @@ public class Startup
 }
 ```
 ### Options
-Elastic APM Transaction can be enriched by registering a delegate on configure parameter. In this way you can add custom data to the transaction
+Elastic APM Transaction can be enriched by registering a delegate on configure parameter. In this way you can add custom data to the transaction.
 ```csharp
 services
     .AddGraphQLServer()
@@ -68,7 +68,7 @@ services
         {
             transaction.SetLabel("GraphQLResult", operationDetails.HasFailed);
             transaction.SetLabel("Department", Environment.GetEnvironmentVariable("DEPARTMENT"));
-        }
+        });
 ```
 
 ## Community
