@@ -31,7 +31,7 @@ This can be changed when creating the `MassTransitDiagnosticsSubscriber` by prov
 new MassTransitDiagnosticsSubscriber(o => 
   o.ReceiveLabel = context => context.Host.AbsolutePath)
 ```
-or you can return `null` and then the default label will be used.
+or if you return `null`, the default label will be used.
 ```csharp
 new MassTransitDiagnosticsSubscriber(o => 
   o.ReceiveLabel = context => 
