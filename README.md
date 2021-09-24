@@ -23,20 +23,20 @@ The following events from the [MassTransit DiagnosticSource](https://masstransit
 - `Transport.Receive`
 ### Options
 By default the Elastic APM send/receive label will be as follow:
-- "Send {[`SendContext.DestinationAddress.AbsolutePath`](https://github.com/MassTransit/MassTransit/blob/5e2a416384f005c392ead139f5c4af34511c56db/src/MassTransit/SendContext.cs#L31)}"
-- "Receive {[`ReceiveContext.InputAddress.AbsolutePath`](https://github.com/MassTransit/MassTransit/blob/5e2a416384f005c392ead139f5c4af34511c56db/src/MassTransit/ReceiveContext.cs#L24)}"
+- "Send {label}" where label is [`SendContext.DestinationAddress.AbsolutePath`](https://github.com/MassTransit/MassTransit/blob/5e2a416384f005c392ead139f5c4af34511c56db/src/MassTransit/SendContext.cs#L31)
+- "Receive {label}" where label is [`ReceiveContext.InputAddress.AbsolutePath`](https://github.com/MassTransit/MassTransit/blob/5e2a416384f005c392ead139f5c4af34511c56db/src/MassTransit/ReceiveContext.cs#L24)
 
 This can be changed when creating the `MassTransitDiagnosticsSubscriber` by providing a different label.
 ```csharp
 new MassTransitDiagnosticsSubscriber(o => 
   o.ReceiveLabel = context => context.Host.AbsolutePath)
 ```
-or with condition and return `null` or `default` if is not met. In the case when `null` will be returned the default label will be used.
+or you can return `null` and then the default label will be used.
 ```csharp
 new MassTransitDiagnosticsSubscriber(o => 
   o.ReceiveLabel = context => 
     if (context is RabbitMqReceiveContext rabbitMqContext)
-      ? $"Receive {rabbitMqContext.Exchange}"
+      ? rabbitMqContext.Exchange
       : default;)
 ```
 The same can be used also for `SendLabel`

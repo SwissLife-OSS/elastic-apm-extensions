@@ -5,25 +5,49 @@ namespace Elastic.Apm.Messaging.MassTransit
 {
     public class MassTransitDiagnosticOptions
     {
-        private readonly Func<ReceiveContext, string> _defaultTransactionName =
-            context => $"Receive {context.InputAddress.AbsolutePath}";
+        private readonly Func<SendContext, string> _defaultSendLabel =
+            context => context.DestinationAddress.AbsolutePath;
+
+        private readonly Func<ReceiveContext, string> _defaultReceiveLabel =
+            context => context.InputAddress.AbsolutePath;
 
         internal MassTransitDiagnosticOptions()
         {
-            TransactionName = _defaultTransactionName;
+            SendLabel = _defaultSendLabel;
+            ReceiveLabel = _defaultReceiveLabel;
         }
 
-        internal string GetTransactionName(ReceiveContext context)
+        internal string GetSendLabel(SendContext context) =>    
+            GetLabel(context, SendLabel, _defaultSendLabel);
+
+        internal string GetReceiveLabel(ReceiveContext context) =>
+            GetLabel(context, ReceiveLabel, _defaultReceiveLabel);
+
+        private string GetLabel<T>(
+            T context,
+            Func<T, string> userResolver,
+            Func<T, string> defaultResolver)
         {
-            var transactionName = TransactionName(context);
-            if (string.IsNullOrEmpty(transactionName))
+            var label = userResolver(context);
+
+            if (string.IsNullOrEmpty(label))
             {
-                transactionName = _defaultTransactionName(context);
+                label = defaultResolver(context);
             }
 
-            return transactionName;
+            return label;
         }
 
-        public Func<ReceiveContext, string> TransactionName { get; set; }
+        /// <summary>
+        /// Replace the default postfix for Send message.
+        /// If the return value is empty or null, it will be replace with the default postfix.
+        /// </summary>
+        public Func<SendContext, string> SendLabel { get; set; }
+
+        /// <summary>
+        /// Replace the default postfix for Receive message.
+        /// If the return value is empty or null, it will be replace with the default postfix.
+        /// </summary>
+        public Func<ReceiveContext, string> ReceiveLabel { get; set; }
     }
 }
