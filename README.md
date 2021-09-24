@@ -41,6 +41,7 @@ new MassTransitDiagnosticsSubscriber(o =>
 ```
 The same can be used also for `SendLabel`
 ## HotChocolate
+### Usage
 HotChocolate by default is not emitting diagnostic events, but has the infrastructure to instrument each request.
 ```csharp
 public class Startup
@@ -57,6 +58,7 @@ public class Startup
     }
 }
 ```
+### Options
 ## Community
 
 This project has adopted the code of conduct defined by the [Contributor Covenant](https://contributor-covenant.org/)
