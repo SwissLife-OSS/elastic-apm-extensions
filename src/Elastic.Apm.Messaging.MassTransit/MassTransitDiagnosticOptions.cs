@@ -39,14 +39,14 @@ namespace Elastic.Apm.Messaging.MassTransit
         }
 
         /// <summary>
-        /// Replace the default postfix for Send message.
-        /// If the return value is empty or null, it will be replace with the default postfix.
+        /// Replace the default label for Send message.
+        /// If the return value is empty or null, it will be replace with the default label.
         /// </summary>
         public Func<SendContext, string> SendLabel { get; set; }
 
         /// <summary>
-        /// Replace the default postfix for Receive message.
-        /// If the return value is empty or null, it will be replace with the default postfix.
+        /// Replace the default label for Receive message.
+        /// If the return value is empty or null, it will be replace with the default label.
         /// </summary>
         public Func<ReceiveContext, string> ReceiveLabel { get; set; }
     }
