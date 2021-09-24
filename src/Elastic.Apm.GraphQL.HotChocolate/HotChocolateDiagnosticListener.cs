@@ -12,7 +12,7 @@ using LogLevel = Elastic.Apm.Logging.LogLevel;
 
 namespace Elastic.Apm.GraphQL.HotChocolate
 {
-    internal class HotChocolateDiagnosticListener : DiagnosticEventListener
+    internal class HotChocolateDiagnosticListener : ExecutionDiagnosticEventListener 
     {
         private static readonly string ResolveFieldValueFailed = $"{nameof(ResolveFieldValue)} failed.";
 
@@ -32,7 +32,7 @@ namespace Elastic.Apm.GraphQL.HotChocolate
             _apmLogger = _apmAgent.Logger;
         }
 
-        public override IActivityScope ExecuteRequest(IRequestContext context)
+        public override IDisposable ExecuteRequest(IRequestContext context)
         {
             ITransaction? transaction = _apmAgent.Tracer.CurrentTransaction;
             return transaction != null
@@ -40,7 +40,7 @@ namespace Elastic.Apm.GraphQL.HotChocolate
                 : EmptyScope;
         }
 
-        public override IActivityScope ResolveFieldValue(IMiddlewareContext context)
+        public override IDisposable ResolveFieldValue(IMiddlewareContext context)
         {
             if (_configuration.LogLevel > LogLevel.Debug)
             {

@@ -2,7 +2,7 @@
 
   <PropertyGroup>
     <ElasticApmVersion>1.8.0</ElasticApmVersion>
-    <HotChocolateVersion>11.0.0</HotChocolateVersion>
+    <HotChocolateVersion>12.0.0-rc.11</HotChocolateVersion>
     <MassTransitVersion>7.1.0</MassTransitVersion>
     <SystemDiagnosticSourceVersion>4.7.0</SystemDiagnosticSourceVersion>
   </PropertyGroup>

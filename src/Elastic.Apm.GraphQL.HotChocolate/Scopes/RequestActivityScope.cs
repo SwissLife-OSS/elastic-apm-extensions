@@ -5,13 +5,12 @@ using System.Linq;
 using Elastic.Apm.Api;
 using Elastic.Apm.Logging;
 using HotChocolate.Execution;
-using HotChocolate.Execution.Instrumentation;
 using HotChocolate.Language;
 using IError = HotChocolate.IError;
 
 namespace Elastic.Apm.GraphQL.HotChocolate
 {
-    internal class RequestActivityScope : IActivityScope
+    internal class RequestActivityScope : IDisposable
     {
         private static readonly string ExecuteRequestFailed = "ExecuteRequest instrumentation failed.";
 
