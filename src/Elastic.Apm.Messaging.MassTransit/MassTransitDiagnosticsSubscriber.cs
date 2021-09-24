@@ -9,7 +9,7 @@ namespace Elastic.Apm.Messaging.MassTransit
     /// </summary>
     public class MassTransitDiagnosticsSubscriber : IDiagnosticsSubscriber
     {
-        private MassTransitDiagnosticOptions _options;
+        private readonly MassTransitDiagnosticOptions _options;
 
         public MassTransitDiagnosticsSubscriber(Action<MassTransitDiagnosticOptions>? configure = default)
         {

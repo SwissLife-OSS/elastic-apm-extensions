@@ -18,17 +18,18 @@ namespace Elastic.Apm.GraphQL.HotChocolate
         private readonly IRequestContext _context;
         private readonly ITransaction _transaction;
         private readonly IApmAgent _apmAgent;
-        private readonly EnrichTransaction? _enrich;
+        private readonly HotChocolateDiagnosticOptions _options;
 
-        internal RequestActivityScope(IRequestContext context,
+        internal RequestActivityScope(
+            IRequestContext context,
             ITransaction transaction,
             IApmAgent apmAgent,
-            EnrichTransaction? enrich)
+            HotChocolateDiagnosticOptions options)
         {
             _context = context;
             _transaction = transaction;
             _apmAgent = apmAgent;
-            _enrich = enrich;
+            _options = options;
         }
 
         public void Dispose()
@@ -51,7 +52,7 @@ namespace Elastic.Apm.GraphQL.HotChocolate
                     _apmAgent.CaptureException(exception);
                 }
 
-                _enrich?.Invoke(_transaction, operationDetails);
+                _options.Enrich?.Invoke(_transaction, operationDetails);
             }
             catch (Exception ex)
             {

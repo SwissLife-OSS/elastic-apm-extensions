@@ -41,6 +41,7 @@ new MassTransitDiagnosticsSubscriber(o =>
 ```
 The same can be used also for `SendLabel`
 ## HotChocolate
+### Usage
 HotChocolate by default is not emitting diagnostic events, but has the infrastructure to instrument each request.
 ```csharp
 public class Startup
@@ -57,6 +58,19 @@ public class Startup
     }
 }
 ```
+### Options
+Elastic APM Transaction can be enriched by registering a delegate on configure parameter. In this way you can add custom data to the transaction.
+```csharp
+services
+    .AddGraphQLServer()
+    .AddObservability(o => 
+        o.Enrich = (transaction, operationDetails) =>
+        {
+            transaction.SetLabel("GraphQLResult", operationDetails.HasFailed);
+            transaction.SetLabel("Department", Environment.GetEnvironmentVariable("DEPARTMENT"));
+        });
+```
+
 ## Community
 
 This project has adopted the code of conduct defined by the [Contributor Covenant](https://contributor-covenant.org/)
