@@ -64,8 +64,7 @@ namespace Elastic.Apm.Messaging.MassTransit
                 IExecutionSegment? executionSegment = _apmAgent.Tracer.GetExecutionSegment();
                 if (executionSegment != null && context is SendContext sendContext)
                 {
-                    var spanName = context is PublishContext ? "Publish" : "Send";
-                    spanName = $"{spanName} {sendContext.DestinationAddress.AbsolutePath}";
+                    var spanName = $"Send {sendContext.DestinationAddress.AbsolutePath}";
                     var subType = sendContext.DestinationAddress.Scheme;
 
                     ISpan span = executionSegment.StartSpan(
