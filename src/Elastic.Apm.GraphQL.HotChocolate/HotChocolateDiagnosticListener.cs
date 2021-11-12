@@ -12,7 +12,7 @@ using LogLevel = Elastic.Apm.Logging.LogLevel;
 
 namespace Elastic.Apm.GraphQL.HotChocolate
 {
-    internal class HotChocolateDiagnosticListener : ExecutionDiagnosticEventListener 
+    internal class HotChocolateDiagnosticListener : ExecutionDiagnosticEventListener
     {
         private static readonly string ResolveFieldValueFailed = $"{nameof(ResolveFieldValue)} failed.";
 
@@ -58,7 +58,7 @@ namespace Elastic.Apm.GraphQL.HotChocolate
                     if (executionSegment == null) return EmptyScope;
 
                     ISpan span = executionSegment.StartSpan(
-                        context.Field.Name!.Value, ApiConstants.TypeRequest, Constants.Apm.SubType);
+                        context.Selection.Field.Name, ApiConstants.TypeRequest, Constants.Apm.SubType);
 
                     return new FieldActivityScope(span);
                 }
