@@ -1,9 +1,9 @@
+using System;
 using Elastic.Apm.Api;
-using HotChocolate.Execution.Instrumentation;
 
 namespace Elastic.Apm.GraphQL.HotChocolate
 {
-    internal class FieldActivityScope : IActivityScope
+    internal class FieldActivityScope : IDisposable
     {
         private readonly ISpan _span;
 
