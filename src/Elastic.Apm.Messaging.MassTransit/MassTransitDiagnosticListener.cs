@@ -112,7 +112,7 @@ namespace Elastic.Apm.Messaging.MassTransit
         private void HandleStop(ActivitySpanId? spanId, TimeSpan duration)
         {
             if (spanId.HasValue &&
-                _activities.TryRemove(spanId.Value, out IExecutionSegment executionSegment))
+                _activities.TryRemove(spanId.Value, out IExecutionSegment? executionSegment))
             {
                 executionSegment.Duration = duration.TotalMilliseconds;
                 executionSegment.End();
