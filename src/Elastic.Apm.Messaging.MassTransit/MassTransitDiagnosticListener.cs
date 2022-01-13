@@ -15,8 +15,7 @@ namespace Elastic.Apm.Messaging.MassTransit
         private readonly IApmLogger _logger;
         private readonly MassTransitDiagnosticOptions _options;
 
-        private readonly ConcurrentDictionary<ActivitySpanId, IExecutionSegment> _activities = 
-            new ConcurrentDictionary<ActivitySpanId, IExecutionSegment>();
+        private readonly ConcurrentDictionary<ActivitySpanId, IExecutionSegment> _activities = new();
 
         internal MassTransitDiagnosticListener(IApmAgent apmAgent, MassTransitDiagnosticOptions options)
         {
@@ -65,14 +64,28 @@ namespace Elastic.Apm.Messaging.MassTransit
                 if (executionSegment != null && context is SendContext sendContext)
                 {
                     var spanName = $"Send {_options.GetSendLabel(sendContext)}";
-                    var subType = sendContext.DestinationAddress.Scheme;
+                    var subType = sendContext.GetSpanSubType();
 
                     ISpan span = executionSegment.StartSpan(
                         spanName,
                         Constants.Apm.Type,
                         subType,
                         Constants.Apm.SendAction);
-                    
+
+                    span.Context.Destination = new Destination
+                    {
+                        Address = sendContext.DestinationAddress.AbsoluteUri,
+                        Service = new Destination.DestinationService
+                        {
+                            Resource = $"{subType}{sendContext.DestinationAddress.AbsolutePath}",
+                        }
+                    };
+
+                    span.Context.Message = new Message
+                    {
+                        Queue = new Queue { Name = sendContext.GetDestinationAbsoluteName() }
+                    };
+
                     sendContext.SetTracingData(span);
 
                     _activities.TryAdd(activity.SpanId, span);
@@ -91,13 +104,24 @@ namespace Elastic.Apm.Messaging.MassTransit
             {
                 if (context is ReceiveContext receiveContext)
                 {
-                    DistributedTracingData? tracingData = receiveContext.GetTracingData();
                     var transactionName = $"Receive {_options.GetReceiveLabel(receiveContext)}";
 
-                    ITransaction transaction = _apmAgent.Tracer.StartTransaction(
-                        transactionName,
-                        Constants.Apm.Type,
-                        tracingData);
+                    ITransaction? transaction;
+                    if (_options.InlineReceiveTransaction)
+                    {
+                        DistributedTracingData? tracingData = receiveContext.GetTracingData();
+
+                        transaction = _apmAgent.Tracer.StartTransaction(
+                            transactionName,
+                            Constants.Apm.Type,
+                            tracingData);
+                    }
+                    else
+                    {
+                        transaction = _apmAgent.Tracer.StartTransaction(
+                            transactionName,
+                            Constants.Apm.Type);
+                    }
 
                     _activities.TryAdd(activity.SpanId, transaction);
                 }

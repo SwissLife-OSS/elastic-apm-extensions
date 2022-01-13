@@ -3,6 +3,7 @@ namespace Elastic.Apm.Messaging.MassTransit
     internal struct Constants
     {
         internal const string TraceHeaderName = "Elastic.Apm";
+        internal const string MessageSourceHeaderName = "Elastic.Apm.MessageSource";
 
         internal struct DiagnosticListener
         {
