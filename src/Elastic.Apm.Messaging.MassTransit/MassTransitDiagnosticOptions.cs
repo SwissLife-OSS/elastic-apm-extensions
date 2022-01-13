@@ -9,7 +9,7 @@ namespace Elastic.Apm.Messaging.MassTransit
             context => context.DestinationAddress.AbsolutePath;
 
         private readonly Func<ReceiveContext, string> _defaultReceiveLabel =
-            context => context.InputAddress.AbsolutePath;
+            context => $"on {context.InputAddress.AbsolutePath} from {context.GetMessageSource()}";
 
         internal MassTransitDiagnosticOptions()
         {
@@ -17,7 +17,7 @@ namespace Elastic.Apm.Messaging.MassTransit
             ReceiveLabel = _defaultReceiveLabel;
         }
 
-        internal string GetSendLabel(SendContext context) =>    
+        internal string GetSendLabel(SendContext context) =>
             GetLabel(context, SendLabel, _defaultSendLabel);
 
         internal string GetReceiveLabel(ReceiveContext context) =>
@@ -49,5 +49,13 @@ namespace Elastic.Apm.Messaging.MassTransit
         /// If the return value is empty or null, it will be replace with the default label.
         /// </summary>
         public Func<ReceiveContext, string> ReceiveLabel { get; set; }
+
+        /// <summary>
+        /// True if the receive transaction should has as a parent the send span and
+        /// false if the receive transaction is a root transaction.
+        /// Default: false.
+        /// </summary>
+        public bool InlineReceiveTransaction { get; set; } = false;
+
     }
 }
