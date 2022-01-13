@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using Elastic.Apm.Api;
 using MassTransit;
@@ -39,6 +40,13 @@ namespace Elastic.Apm.Messaging.MassTransit
             var scheme = context.DestinationAddress.Scheme;
 
             return SchemeToSubType.TryGetValue(scheme, out var value) ? value : scheme;
+        }
+
+        internal static string GetDestinationAbsoluteName(this SendContext context)
+        {
+            return context.DestinationAddress.AbsolutePath
+                .AsSpan(1, context.DestinationAddress.AbsolutePath.Length - 1)
+                .ToString();
         }
     }
 }

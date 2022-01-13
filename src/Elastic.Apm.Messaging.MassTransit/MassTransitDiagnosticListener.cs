@@ -6,7 +6,6 @@ using System.Diagnostics.CodeAnalysis;
 using Elastic.Apm.Api;
 using Elastic.Apm.Logging;
 using MassTransit;
-using MassTransit.Transports.InMemory;
 
 namespace Elastic.Apm.Messaging.MassTransit
 {
@@ -84,7 +83,7 @@ namespace Elastic.Apm.Messaging.MassTransit
 
                     span.Context.Message = new Message
                     {
-                        Queue = new Queue { Name = sendContext.DestinationAddress.GetQueueOrExchangeName() }
+                        Queue = new Queue { Name = sendContext.GetDestinationAbsoluteName() }
                     };
 
                     sendContext.SetTracingData(span);
