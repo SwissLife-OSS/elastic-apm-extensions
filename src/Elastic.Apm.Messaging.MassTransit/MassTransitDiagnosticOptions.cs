@@ -56,6 +56,5 @@ namespace Elastic.Apm.Messaging.MassTransit
         /// Default: false.
         /// </summary>
         public bool InlineReceiveTransaction { get; set; } = false;
-
     }
 }

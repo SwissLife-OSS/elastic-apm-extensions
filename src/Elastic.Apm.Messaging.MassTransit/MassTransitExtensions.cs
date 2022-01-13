@@ -18,7 +18,6 @@ namespace Elastic.Apm.Messaging.MassTransit
             context.Headers.Set(
                 Constants.TraceHeaderName,
                 tracingData);
-
             context.Headers.Set(
                 Constants.MessageSourceHeaderName,
                 context.DestinationAddress.AbsolutePath);
