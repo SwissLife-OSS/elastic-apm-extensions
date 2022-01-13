@@ -1,11 +1,11 @@
 using System;
 using System.Collections.Generic;
-using System.Collections.Immutable;
 using System.Linq;
+using System.Text;
 using Elastic.Apm.Api;
 using Elastic.Apm.Logging;
 using HotChocolate.Execution;
-using HotChocolate.Language;
+using HotChocolate.Execution.Processing;
 using IError = HotChocolate.IError;
 
 namespace Elastic.Apm.GraphQL.HotChocolate
@@ -18,6 +18,7 @@ namespace Elastic.Apm.GraphQL.HotChocolate
         private readonly ITransaction _transaction;
         private readonly IApmAgent _apmAgent;
         private readonly HotChocolateDiagnosticOptions _options;
+        private bool _disposed;
 
         internal RequestActivityScope(
             IRequestContext context,
@@ -33,13 +34,33 @@ namespace Elastic.Apm.GraphQL.HotChocolate
 
         public void Dispose()
         {
+            if (!_disposed)
+            {
+                EnrichTransaction();
+                _disposed = true;
+            }
+        }
+
+        private void EnrichTransaction()
+        {
             try
             {
                 OperationDetails operationDetails = GetOperationDetails();
-                _transaction.Name = $"[{operationDetails.Name}] {operationDetails.RootSelection}";
+                _transaction.Name = operationDetails.Name;
                 _transaction.Type = ApiConstants.TypeRequest;
 
-                _transaction.SetLabel("selections", string.Join(";", operationDetails.Selections));
+                _transaction.SetLabel("graphql.document.id", _context.DocumentId);
+                _transaction.SetLabel("graphql.document.hash", _context.DocumentHash);
+                _transaction.SetLabel("graphql.document.valid", _context.IsValidDocument);
+                _transaction.SetLabel("graphql.operation.id", _context.OperationId);
+                _transaction.SetLabel("graphql.operation.kind", _context.Operation?.Type.ToString());
+                _transaction.SetLabel("graphql.operation.name", _context.Operation?.Name?.Value);
+
+                if (_context.Result is IQueryResult result)
+                {
+                    var errorCount = result.Errors?.Count ?? 0;
+                    _transaction.SetLabel("graphql.errors.count", errorCount);
+                }
 
                 if (_context.Result.HasErrors(out IReadOnlyList<IError>? errors))
                 {
@@ -59,54 +80,57 @@ namespace Elastic.Apm.GraphQL.HotChocolate
             }
         }
 
-        private OperationDetails GetOperationDetails()
+        private string? CreateOperationDisplayName()
         {
-            IReadOnlyList<IDefinitionNode>? definitions = _context.Document?.Definitions;
-            if (definitions?.Count > 0)
+            if (_context.Operation is { } operation)
             {
-                var name = GetOperationName(definitions);
+                var displayName = new StringBuilder();
 
-                var selections = definitions.GetFieldNodes()
-                    .Select(x => string.IsNullOrEmpty(x.Name.Value) ? "unknown" : x.Name.Value)
-                    .DefaultIfEmpty("unknown")
-                    .ToImmutableHashSet();
+                ISelectionSet rootSelectionSet = operation.GetRootSelectionSet();
 
-                var rootSelection = definitions.Count > 1
-                    ? "multiple"
-                    : name == "exec_batch"
-                        ? selections.Count > 1
-                            ? $"multiple ({definitions.FirstSelectionsCount()})"
-                            : $"{selections.FirstOrDefault()} ({definitions.FirstSelectionsCount()})"
-                        : selections.FirstOrDefault();
+                displayName.Append('{');
+                displayName.Append(' ');
 
-                return new OperationDetails(name, rootSelection, selections, _context.HasFailed());
+                foreach (ISelection selection in rootSelectionSet.Selections.Take(3))
+                {
+                    if (displayName.Length > 2)
+                    {
+                        displayName.Append(' ');
+                    }
+
+                    displayName.Append(selection.ResponseName);
+                }
+
+                if (rootSelectionSet.Selections.Count > 3)
+                {
+                    displayName.Append(' ');
+                    displayName.Append('.');
+                    displayName.Append('.');
+                    displayName.Append('.');
+                }
+
+                displayName.Append(' ');
+                displayName.Append('}');
+
+                if (operation.Name is { } name)
+                {
+                    displayName.Insert(0, ' ');
+                    displayName.Insert(0, name.Value);
+                }
+
+                displayName.Insert(0, ' ');
+                displayName.Insert(0, operation.Definition.Operation.ToString().ToLowerInvariant());
+
+                return displayName.ToString();
             }
 
-            return OperationDetails.Empty;
+            return null;
         }
 
-        private string? GetOperationName(IReadOnlyList<IDefinitionNode> definition)
+        private OperationDetails GetOperationDetails()
         {
-            var name = _context.Request.OperationName;
-
-            if (string.IsNullOrEmpty(name) &&
-                definition.Count == 1 && 
-                definition[0] is OperationDefinitionNode node)
-            {
-                name = node.Name?.Value;
-            }
-
-            if (string.IsNullOrEmpty(name) || name == "fetch")
-            {
-                name = _context.Request.QueryId;
-            }
-
-            if (string.IsNullOrEmpty(name))
-            {
-                name = Constants.DefaultOperation;
-            }
-
-            return name;
+            var operationDisplayName = CreateOperationDisplayName();
+            return new OperationDetails(operationDisplayName ?? "unnamed", _context.HasFailed());
         }
     }
 }
