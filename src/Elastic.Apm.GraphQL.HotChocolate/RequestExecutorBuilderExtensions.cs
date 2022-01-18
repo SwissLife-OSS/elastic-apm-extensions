@@ -6,7 +6,7 @@ using Microsoft.Extensions.DependencyInjection;
 namespace Elastic.Apm.GraphQL.HotChocolate
 {
     /// <summary>
-    /// Report diagnostic events to Elastic <see cref="IApmAgent"/>
+    /// Report diagnostic events to Elastic
     /// </summary>
     public static class RequestExecutorBuilderExtensions
     {
@@ -24,9 +24,8 @@ namespace Elastic.Apm.GraphQL.HotChocolate
 
             return builder.AddDiagnosticEventListener(sp =>
             {
-                IApmAgent apmAgent = sp.GetApplicationService<IApmAgent>();
                 IConfigurationReader configuration = sp.GetApplicationService<IConfigurationReader>();
-                return new HotChocolateDiagnosticListener(apmAgent, configuration, options);
+                return new HotChocolateDiagnosticListener(configuration, options);
             });
         }
     }

@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using Elastic.Apm.Api;
 using Elastic.Apm.Config;
-using Elastic.Apm.Logging;
 using HotChocolate.Execution;
 using HotChocolate.Execution.Instrumentation;
 using HotChocolate.Language;
@@ -16,33 +15,33 @@ namespace Elastic.Apm.GraphQL.HotChocolate
     {
         private static readonly string ResolveFieldValueFailed = $"{nameof(ResolveFieldValue)} failed.";
 
-        private readonly IApmAgent _apmAgent;
         private readonly IConfigurationReader _configuration;
         private readonly HotChocolateDiagnosticOptions _options;
-        private readonly IApmLogger _apmLogger;
 
         internal HotChocolateDiagnosticListener(
-            IApmAgent apmAgent,
             IConfigurationReader configuration,
             HotChocolateDiagnosticOptions options)
         {
-            _apmAgent = apmAgent;
             _configuration = configuration;
             _options = options;
-            _apmLogger = _apmAgent.Logger;
         }
 
         public override IDisposable ExecuteRequest(IRequestContext context)
         {
-            ITransaction? transaction = _apmAgent.Tracer.CurrentTransaction;
+            if (!Agent.IsConfigured)
+            {
+                return EmptyScope;
+            }
+
+            ITransaction? transaction = Agent.Tracer.CurrentTransaction;
             return transaction != null
-                ? new RequestActivityScope(context, transaction, _apmAgent, _options)
+                ? new RequestActivityScope(context, transaction, _options)
                 : EmptyScope;
         }
 
         public override IDisposable ResolveFieldValue(IMiddlewareContext context)
         {
-            if (_configuration.LogLevel > LogLevel.Debug)
+            if (_configuration.LogLevel > LogLevel.Debug || !Agent.IsConfigured)
             {
                 return EmptyScope;
             }
@@ -53,7 +52,7 @@ namespace Elastic.Apm.GraphQL.HotChocolate
                     context.Document.Definitions.Count == 1 &&
                     context.Document.Definitions[0] is OperationDefinitionNode { Name: { Value: "exec_batch" } })
                 {
-                    IExecutionSegment? executionSegment = _apmAgent.Tracer.GetExecutionSegment();
+                    IExecutionSegment? executionSegment = Agent.Tracer.GetExecutionSegment();
 
                     if (executionSegment == null) return EmptyScope;
 
@@ -65,7 +64,7 @@ namespace Elastic.Apm.GraphQL.HotChocolate
             }
             catch (Exception ex)
             {
-                _apmLogger.Log(LogLevel.Error, ResolveFieldValueFailed, ex, LogFormatter.Nop);
+                Agent.Tracer.CaptureErrorLog(new ErrorLog(ResolveFieldValueFailed), exception: ex);
             }
 
             return EmptyScope;
@@ -73,12 +72,18 @@ namespace Elastic.Apm.GraphQL.HotChocolate
 
         public override void RequestError(IRequestContext context, Exception exception)
         {
-            _apmAgent.CaptureException(exception);
+            if (Agent.IsConfigured)
+            {
+                Agent.Tracer.CaptureException(exception);
+            }
         }
 
         public override void ValidationErrors(IRequestContext context, IReadOnlyList<IError> errors)
         {
-            _apmAgent.CaptureError(errors);
+            if (Agent.IsConfigured)
+            {
+                Agent.Tracer.CaptureError(errors);
+            }
         }
     }
 }
