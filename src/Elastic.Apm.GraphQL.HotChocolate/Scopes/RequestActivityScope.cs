@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using Elastic.Apm.Api;
-using Elastic.Apm.Logging;
 using HotChocolate.Execution;
 using HotChocolate.Execution.Processing;
 using IError = HotChocolate.IError;
@@ -16,19 +15,16 @@ namespace Elastic.Apm.GraphQL.HotChocolate
 
         private readonly IRequestContext _context;
         private readonly ITransaction _transaction;
-        private readonly IApmAgent _apmAgent;
         private readonly HotChocolateDiagnosticOptions _options;
         private bool _disposed;
 
         internal RequestActivityScope(
             IRequestContext context,
             ITransaction transaction,
-            IApmAgent apmAgent,
             HotChocolateDiagnosticOptions options)
         {
             _context = context;
             _transaction = transaction;
-            _apmAgent = apmAgent;
             _options = options;
         }
 
@@ -64,19 +60,19 @@ namespace Elastic.Apm.GraphQL.HotChocolate
 
                 if (_context.Result.HasErrors(out IReadOnlyList<IError>? errors))
                 {
-                    _apmAgent.CaptureError(errors);
+                    Agent.Tracer.CaptureError(errors);
                 }
 
                 if (_context.HasException(out Exception? exception))
                 {
-                    _apmAgent.CaptureException(exception);
+                    Agent.Tracer.CaptureException(exception);
                 }
 
                 _options.Enrich?.Invoke(_transaction, operationDetails);
             }
             catch (Exception ex)
             {
-                _apmAgent.Logger.Log(LogLevel.Error, ExecuteRequestFailed, ex, LogFormatter.Nop);
+                Agent.Tracer.CaptureErrorLog(new ErrorLog(ExecuteRequestFailed), exception: ex);
             }
         }
 

@@ -18,16 +18,16 @@ namespace Elastic.Apm.Messaging.MassTransit
         }
 
         /// <inheritdoc cref="IDiagnosticsSubscriber"/>
-        public IDisposable Subscribe(IApmAgent components)
+        public IDisposable Subscribe(IApmAgent apmAgent)
         {
             var compositeDisposable = new CompositeDisposable();
 
-            if (!components.ConfigurationReader.Enabled)
+            if (!apmAgent.ConfigurationReader.Enabled)
             {
                 return compositeDisposable;
             }
 
-            var initializer = new MassTransitDiagnosticInitializer(components, _options);
+            var initializer = new MassTransitDiagnosticInitializer(apmAgent, _options);
             compositeDisposable.Add(initializer);
             compositeDisposable.Add(DiagnosticListener.AllListeners.Subscribe(initializer));
 

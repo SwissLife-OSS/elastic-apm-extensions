@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using Elastic.Apm.Api;
 using IError = HotChocolate.IError;
-using LogLevel = Elastic.Apm.Logging.LogLevel;
 
 namespace Elastic.Apm.GraphQL.HotChocolate
 {
@@ -12,11 +11,11 @@ namespace Elastic.Apm.GraphQL.HotChocolate
         private static readonly string CaptureErrorFailed = $"{nameof(CaptureError)} failed.";
         private static readonly string CaptureExceptionFailed = $"{nameof(CaptureException)} failed.";
 
-        internal static void CaptureError(this IApmAgent apmAgent, IReadOnlyList<IError> errors)
+        internal static void CaptureError(this ITracer tracer, IReadOnlyList<IError> errors)
         {
             try
             {
-                IExecutionSegment? executionSegment = apmAgent.Tracer.GetExecutionSegment();
+                IExecutionSegment? executionSegment = tracer.GetExecutionSegment();
                 if (executionSegment == null) return;
 
                 foreach (IError error in errors)
@@ -30,31 +29,26 @@ namespace Elastic.Apm.GraphQL.HotChocolate
                     {
                         executionSegment.CaptureError(error.Message, path, Array.Empty<StackFrame>());
                     }
-
-                    var message = $"{error.Message} {path}";
-                    apmAgent.Logger.Log(LogLevel.Error, message, default, LogFormatter.Nop);
                 }
             }
             catch (Exception ex)
             {
-                apmAgent.Logger.Log(LogLevel.Error, CaptureErrorFailed, ex, LogFormatter.Nop);
+                tracer.CaptureErrorLog(new ErrorLog(CaptureErrorFailed), exception: ex);
             }
         }
 
-        internal static void CaptureException(this IApmAgent apmAgent, Exception exception)
+        internal static void CaptureException(this ITracer tracer, Exception exception)
         {
             try
             {
-                IExecutionSegment? executionSegment = apmAgent.Tracer.GetExecutionSegment();
+                IExecutionSegment? executionSegment = tracer.GetExecutionSegment();
                 if (executionSegment == null) return;
 
                 executionSegment.CaptureException(exception);
-
-                apmAgent.Logger.Log(LogLevel.Error, exception.Message, default, LogFormatter.Nop);
             }
             catch (Exception ex)
             {
-                apmAgent.Logger.Log(LogLevel.Error, CaptureExceptionFailed, ex, LogFormatter.Nop);
+                tracer.CaptureErrorLog(new ErrorLog(CaptureExceptionFailed), exception: ex);
             }
         }
     }

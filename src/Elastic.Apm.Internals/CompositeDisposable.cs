@@ -26,7 +26,7 @@ namespace Elastic.Apm
 
                 _isDisposed = true;
 
-                foreach (var d in _disposables)
+                foreach (IDisposable? d in _disposables)
                 {
                     d.Dispose();
                 }
