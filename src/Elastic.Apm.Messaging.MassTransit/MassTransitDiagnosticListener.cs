@@ -3,6 +3,7 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
+using System.Linq;
 using Elastic.Apm.Api;
 using Elastic.Apm.Logging;
 using MassTransit;
@@ -16,6 +17,7 @@ namespace Elastic.Apm.Messaging.MassTransit
         private readonly MassTransitDiagnosticOptions _options;
 
         private readonly ConcurrentDictionary<ActivitySpanId, IExecutionSegment> _activities = new();
+        private readonly ConcurrentDictionary<ActivitySpanId, IExecutionSegment[]> _multipleActivities = new();
 
         internal MassTransitDiagnosticListener(IApmAgent apmAgent, MassTransitDiagnosticOptions options)
         {
@@ -60,24 +62,32 @@ namespace Elastic.Apm.Messaging.MassTransit
         {
             try
             {
-                IExecutionSegment? executionSegment = _apmAgent.Tracer.GetExecutionSegment();
-                if (executionSegment != null && context is SendContext sendContext)
+                if (context is SendContext sendContext)
                 {
-                    var spanName = $"Send {_options.GetSendLabel(sendContext)}";
-                    var subType = sendContext.GetSpanSubType();
+                    var hasTransaction = true;
+                    var name = $"Send {_options.GetSendLabel(sendContext)}";
 
+                    IExecutionSegment? executionSegment = _apmAgent.Tracer.GetExecutionSegment();
+                    if (executionSegment == null)
+                    {
+                        executionSegment = _apmAgent.Tracer
+                            .StartTransaction(name, Constants.Apm.Type);
+                        hasTransaction = false;
+                    }
+
+                    var subType = sendContext.GetSpanSubType();
                     ISpan span = executionSegment.StartSpan(
-                        spanName,
+                        hasTransaction ? name : "Sending",
                         Constants.Apm.Type,
                         subType,
                         Constants.Apm.SendAction);
 
                     span.Context.Destination = new Destination
                     {
-                        Address = sendContext.DestinationAddress.AbsoluteUri,
+                        Address = sendContext.DestinationAddress.AbsoluteUri,  
                         Service = new Destination.DestinationService
                         {
-                            Resource = $"{subType}{sendContext.DestinationAddress.AbsolutePath}",
+                            Resource = $"{subType}{sendContext.DestinationAddress.AbsolutePath}"
                         }
                     };
 
@@ -88,7 +98,14 @@ namespace Elastic.Apm.Messaging.MassTransit
 
                     sendContext.SetTracingData(span);
 
-                    _activities.TryAdd(activity.SpanId, span);
+                    if (hasTransaction)
+                    {
+                        _activities.TryAdd(activity.SpanId, span);
+                    }
+                    else
+                    {
+                        _multipleActivities.TryAdd(activity.SpanId, new[] { span, executionSegment });
+                    }
                 }
             }
             catch (Exception ex)
@@ -123,7 +140,28 @@ namespace Elastic.Apm.Messaging.MassTransit
                             Constants.Apm.Type);
                     }
 
-                    _activities.TryAdd(activity.SpanId, transaction);
+                    var subType = receiveContext.GetSpanSubType();
+                    ISpan span = transaction.StartSpan(
+                        "Receiving",
+                        Constants.Apm.Type,
+                        subType,
+                        Constants.Apm.SendAction);
+
+                    span.Context.Destination = new Destination
+                    {
+                        Address = receiveContext.InputAddress.AbsoluteUri,
+                        Service = new Destination.DestinationService
+                        {
+                            Resource = $"{subType}{receiveContext.InputAddress.AbsolutePath}"
+                        }
+                    };
+
+                    span.Context.Message = new Message
+                    {
+                        Queue = new Queue { Name = receiveContext.GetInputAbsoluteName() }
+                    };
+
+                    _multipleActivities.TryAdd(activity.SpanId, new[] { (IExecutionSegment)span, transaction });
                 }
             }
             catch (Exception ex)
@@ -135,11 +173,26 @@ namespace Elastic.Apm.Messaging.MassTransit
 
         private void HandleStop(ActivitySpanId? spanId, TimeSpan duration)
         {
-            if (spanId.HasValue &&
-                _activities.TryRemove(spanId.Value, out IExecutionSegment? executionSegment))
+            if (spanId.HasValue)
             {
-                executionSegment.Duration = duration.TotalMilliseconds;
-                executionSegment.End();
+                if (_activities.Any() &&
+                    _activities.TryRemove(spanId.Value, out IExecutionSegment? executionSegment) &&
+                    executionSegment != null)
+                {
+                    executionSegment.Duration = duration.TotalMilliseconds;
+                    executionSegment.End();    
+                }
+
+                if (_multipleActivities.Any() &&
+                    _multipleActivities.TryRemove(spanId.Value, out IExecutionSegment[]? executionSegments) &&
+                    executionSegments != null)
+                {
+                    for (var i = 0; i < executionSegments.Length; i++)
+                    {
+                        executionSegments[i].Duration = duration.TotalMilliseconds;
+                        executionSegments[i].End();
+                    }
+                }
             }
         }
 

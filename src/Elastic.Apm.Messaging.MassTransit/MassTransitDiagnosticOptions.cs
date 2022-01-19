@@ -9,7 +9,13 @@ namespace Elastic.Apm.Messaging.MassTransit
             context => context.DestinationAddress.AbsolutePath;
 
         private readonly Func<ReceiveContext, string> _defaultReceiveLabel =
-            context => $"on {context.InputAddress.AbsolutePath} from {context.GetMessageSource()}";
+            context =>
+            {
+                var messageSource = context.GetMessageSource();
+                return string.IsNullOrEmpty(messageSource)
+                    ? $"on {context.InputAddress.AbsolutePath}"
+                    : $"on {context.InputAddress.AbsolutePath} from {messageSource}";
+            };
 
         internal MassTransitDiagnosticOptions()
         {
