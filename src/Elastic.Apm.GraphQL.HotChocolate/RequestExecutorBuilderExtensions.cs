@@ -1,5 +1,4 @@
 using System;
-using Elastic.Apm.Config;
 using HotChocolate.Execution.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -22,11 +21,8 @@ namespace Elastic.Apm.GraphQL.HotChocolate
             var options = new HotChocolateDiagnosticOptions();
             configure?.Invoke(options);
 
-            return builder.AddDiagnosticEventListener(sp =>
-            {
-                IConfigurationReader configuration = sp.GetApplicationService<IConfigurationReader>();
-                return new HotChocolateDiagnosticListener(configuration, options);
-            });
+            return builder.AddDiagnosticEventListener(_ =>
+                new HotChocolateDiagnosticListener(options));
         }
     }
 }

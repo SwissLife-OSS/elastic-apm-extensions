@@ -1,8 +1,8 @@
 <Project>
 
   <PropertyGroup>
-    <ElasticApmVersion>1.12.0</ElasticApmVersion>
-    <HotChocolateVersion>12.0.0</HotChocolateVersion>
+    <ElasticApmVersion>1.13.0</ElasticApmVersion>
+    <HotChocolateVersion>12.5.0</HotChocolateVersion>
     <MassTransitVersion>7.1.0</MassTransitVersion>
     <SystemDiagnosticSourceVersion>4.7.0</SystemDiagnosticSourceVersion>
   </PropertyGroup>
