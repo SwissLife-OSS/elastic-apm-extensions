@@ -46,28 +46,10 @@ namespace Elastic.Apm.GraphQL.HotChocolate
                 return EmptyScope;
             }
 
-            try
-            {
-                if (context.Path.Depth == 0 &&
-                    context.Document.Definitions.Count == 1 &&
-                    context.Document.Definitions[0] is OperationDefinitionNode { Name: { Value: "exec_batch" } })
-                {
-                    IExecutionSegment? executionSegment = Agent.Tracer.GetExecutionSegment();
-
-                    if (executionSegment == null) return EmptyScope;
-
-                    ISpan span = executionSegment.StartSpan(
-                        context.Selection.Field.Name, ApiConstants.TypeRequest, Constants.Apm.SubType);
-
-                    return new FieldActivityScope(span);
-                }
-            }
-            catch (Exception ex)
-            {
-                Agent.Tracer.CaptureErrorLog(new ErrorLog(ResolveFieldValueFailed), exception: ex);
-            }
-
-            return EmptyScope;
+            ITransaction? transaction = Agent.Tracer.CurrentTransaction;
+            return transaction != null && transaction.Configuration.LogLevel <= LogLevel.Debug
+                ? new FieldActivityScope(context, transaction, _options)
+                : EmptyScope;
         }
 
         public override void RequestError(IRequestContext context, Exception exception)
