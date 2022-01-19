@@ -1,13 +1,12 @@
 using System;
 using System.Collections.Generic;
 using Elastic.Apm.Api;
-using Elastic.Apm.Config;
+using Elastic.Apm.Logging;
 using HotChocolate.Execution;
 using HotChocolate.Execution.Instrumentation;
 using HotChocolate.Language;
 using HotChocolate.Resolvers;
 using IError = HotChocolate.IError;
-using LogLevel = Elastic.Apm.Logging.LogLevel;
 
 namespace Elastic.Apm.GraphQL.HotChocolate
 {
@@ -15,14 +14,10 @@ namespace Elastic.Apm.GraphQL.HotChocolate
     {
         private static readonly string ResolveFieldValueFailed = $"{nameof(ResolveFieldValue)} failed.";
 
-        private readonly IConfigurationReader _configuration;
         private readonly HotChocolateDiagnosticOptions _options;
 
-        internal HotChocolateDiagnosticListener(
-            IConfigurationReader configuration,
-            HotChocolateDiagnosticOptions options)
+        internal HotChocolateDiagnosticListener(HotChocolateDiagnosticOptions options)
         {
-            _configuration = configuration;
             _options = options;
         }
 
@@ -41,7 +36,9 @@ namespace Elastic.Apm.GraphQL.HotChocolate
 
         public override IDisposable ResolveFieldValue(IMiddlewareContext context)
         {
-            if (_configuration.LogLevel > LogLevel.Debug || !Agent.IsConfigured)
+            if (!Agent.IsConfigured ||
+                Agent.Tracer.CurrentTransaction == null ||
+                Agent.Tracer.CurrentTransaction.Configuration.LogLevel > LogLevel.Debug)
             {
                 return EmptyScope;
             }
