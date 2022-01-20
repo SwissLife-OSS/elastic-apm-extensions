@@ -1,5 +1,7 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
+using System.Linq;
 using Elastic.Apm.Api;
 using MassTransit;
 
@@ -12,26 +14,87 @@ namespace Elastic.Apm.Messaging.MassTransit
             { "sb", "azureservicebus" }
         };
 
-        internal static void SetTracingData(this SendContext context, ISpan span)
+        internal static void SetTracingData(this SendContext context, ISpan span, bool isResponse)
         {
             var tracingData = span.OutgoingDistributedTracingData.SerializeToString();
             context.Headers.Set(
-                Constants.TraceHeaderName,
+                Constants.TraceHeader,
                 tracingData);
             context.Headers.Set(
-                Constants.MessageSourceHeaderName,
+                Constants.MessageSourceHeader,
                 context.DestinationAddress.AbsolutePath);
+            context.Headers.Set(
+                Constants.ReceiveResponseHeader,
+                $"{isResponse}",
+                true);
+
+            if (context.Headers.TryGetHeader(Constants.AcceptTypeHeader, out var value) &&
+                value is IList<string> values)
+            {
+                var acceptType = values.FirstOrDefault();
+                if (!string.IsNullOrEmpty(acceptType) &&
+                    Uri.TryCreate(acceptType, UriKind.RelativeOrAbsolute, out Uri? acceptTypeUrn))
+                {
+                    context.Headers.Set(Constants.MessageResponseHeader, acceptTypeUrn.AbsolutePath);
+                }
+            }
+
+            if (isResponse)
+            {
+                context.Headers.Set(
+                    Constants.MessageResponseHeader,
+                    context.Headers.Get<string>(Constants.MessageResponseHeader),
+                    true);
+            }
         }
 
         internal static DistributedTracingData? GetTracingData(this ReceiveContext context)
         {
-            var tracingData = context.TransportHeaders.Get<string>(Constants.TraceHeaderName);
+            var tracingData = context.TransportHeaders.Get<string>(Constants.TraceHeader);
             return DistributedTracingData.TryDeserializeFromString(tracingData);
+        }
+
+        internal static bool WaitForResponse(this ReceiveContext context)
+        {
+            return context.TransportHeaders.TryGetHeader(Constants.MessageResponseHeader, out _);
+        }
+
+        internal static bool TryGetMessageResponse(this SendContext context, [NotNullWhen(true)]out string? value)
+        {
+            value = default;
+            var hasHeader = context.Headers.TryGetHeader(Constants.MessageResponseHeader, out var rawValue);
+            if (hasHeader)
+            {
+                value = rawValue as string;
+            }
+
+            return hasHeader;
+        }
+
+        internal static bool TryGetMessageResponse(this ReceiveContext context, [NotNullWhen(true)] out string? value)
+        {
+            value = default;
+            var hasReceiveResponse = context.TransportHeaders.TryGetHeader(Constants.ReceiveResponseHeader, out var rawReceiveResponse);
+            if (hasReceiveResponse &&
+                rawReceiveResponse is string receiveResponse &&
+                receiveResponse.Equals("True", StringComparison.InvariantCultureIgnoreCase))
+            {
+                var hasMessageResponse =
+                    context.TransportHeaders.TryGetHeader(Constants.MessageResponseHeader, out var messageResponse);
+                if (hasMessageResponse)
+                {
+                    value = messageResponse as string;
+                }
+
+                return hasMessageResponse;
+            }
+
+            return false;
         }
 
         internal static string GetMessageSource(this ReceiveContext context)
         {
-            return context.TransportHeaders.Get<string>(Constants.MessageSourceHeaderName);
+            return context.TransportHeaders.Get<string>(Constants.MessageSourceHeader);
         }
 
         internal static string GetSpanSubType(this SendContext context)
@@ -48,10 +111,10 @@ namespace Elastic.Apm.Messaging.MassTransit
             return SchemeToSubType.TryGetValue(scheme, out var value) ? value : scheme;
         }
 
-        internal static string GetDestinationAbsoluteName(this SendContext context)
+        internal static string GetAbsoluteName(this Uri address)
         {
-            return context.DestinationAddress.AbsolutePath
-                .AsSpan(1, context.DestinationAddress.AbsolutePath.Length - 1)
+            return address.AbsolutePath
+                .AsSpan(1, address.AbsolutePath.Length - 1)
                 .ToString();
         }
 
