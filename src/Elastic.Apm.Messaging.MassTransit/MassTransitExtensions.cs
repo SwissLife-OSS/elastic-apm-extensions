@@ -117,5 +117,12 @@ namespace Elastic.Apm.Messaging.MassTransit
                 .AsSpan(1, context.InputAddress.AbsolutePath.Length - 1)
                 .ToString();
         }
+
+        internal static string GetInputAbsoluteName(this ReceiveContext context)
+        {
+            return context.InputAddress.AbsolutePath
+                .AsSpan(1, context.InputAddress.AbsolutePath.Length - 1)
+                .ToString();
+        }
     }
 }

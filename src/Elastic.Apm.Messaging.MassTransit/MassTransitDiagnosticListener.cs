@@ -160,7 +160,28 @@ namespace Elastic.Apm.Messaging.MassTransit
                             Constants.Apm.Type);
                     }
 
-                    _activities.TryAdd(activity.SpanId, transaction);
+                    var subType = receiveContext.GetSpanSubType();
+                    ISpan span = transaction.StartSpan(
+                        "Receiving",
+                        Constants.Apm.Type,
+                        subType,
+                        Constants.Apm.SendAction);
+
+                    span.Context.Destination = new Destination
+                    {
+                        Address = receiveContext.InputAddress.AbsoluteUri,
+                        Service = new Destination.DestinationService
+                        {
+                            Resource = $"{subType}{receiveContext.InputAddress.AbsolutePath}"
+                        }
+                    };
+
+                    span.Context.Message = new Message
+                    {
+                        Queue = new Queue { Name = receiveContext.GetInputAbsoluteName() }
+                    };
+
+                    _multipleActivities.TryAdd(activity.SpanId, new[] { (IExecutionSegment)span, transaction });
                 }
             }
             catch (Exception ex)
