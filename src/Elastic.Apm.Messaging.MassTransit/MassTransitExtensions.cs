@@ -59,10 +59,10 @@ namespace Elastic.Apm.Messaging.MassTransit
             return context.TransportHeaders.TryGetHeader(Constants.MessageResponseHeader, out _);
         }
 
-        internal static bool TryGetMessageResponse(this SendContext context, [NotNullWhen(true)]out string? value)
+        internal static bool TryGetMessageResponse(this Headers headers, [NotNullWhen(true)]out string? value)
         {
             value = default;
-            var hasHeader = context.Headers.TryGetHeader(Constants.MessageResponseHeader, out var rawValue);
+            var hasHeader = headers.TryGetHeader(Constants.MessageResponseHeader, out var rawValue);
             if (hasHeader)
             {
                 value = rawValue as string;
@@ -79,14 +79,7 @@ namespace Elastic.Apm.Messaging.MassTransit
                 rawReceiveResponse is string receiveResponse &&
                 receiveResponse.Equals("True", StringComparison.InvariantCultureIgnoreCase))
             {
-                var hasMessageResponse =
-                    context.TransportHeaders.TryGetHeader(Constants.MessageResponseHeader, out var messageResponse);
-                if (hasMessageResponse)
-                {
-                    value = messageResponse as string;
-                }
-
-                return hasMessageResponse;
+                return TryGetMessageResponse(context.TransportHeaders, out value);
             }
 
             return false;

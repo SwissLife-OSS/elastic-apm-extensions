@@ -73,7 +73,7 @@ namespace Elastic.Apm.Messaging.MassTransit
                     var hasTransaction = true;
                     var name = $"Send {_options.GetSendLabel(sendContext)}";
 
-                    var isSendingResponse = sendContext.TryGetMessageResponse(out var messageResponse);
+                    var isSendingResponse = sendContext.Headers.TryGetMessageResponse(out var messageResponse);
                     if (isSendingResponse)
                     {
                         name = $"Respond {messageResponse}";
