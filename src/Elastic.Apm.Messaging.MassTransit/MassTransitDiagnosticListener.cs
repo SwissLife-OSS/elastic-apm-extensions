@@ -47,6 +47,12 @@ namespace Elastic.Apm.Messaging.MassTransit
                 case Constants.Events.ReceiveStop:
                     HandleStop(activity.ParentSpanId, activity.Parent!.Duration);
                     return;
+                case Constants.Events.ConsumeStart:
+                    HandleConsumeStart(activity, value.Value);
+                    return;
+                case Constants.Events.ConsumeStop:
+                    HandleStop(activity.SpanId, activity.Duration);
+                    return;
             }
         }
 
@@ -67,6 +73,12 @@ namespace Elastic.Apm.Messaging.MassTransit
                     var hasTransaction = true;
                     var name = $"Send {_options.GetSendLabel(sendContext)}";
 
+                    var isSendingResponse = sendContext.Headers.TryGetMessageResponse(out var messageResponse);
+                    if (isSendingResponse)
+                    {
+                        name = $"Respond {messageResponse}";
+                    }
+
                     IExecutionSegment? executionSegment = _apmAgent.Tracer.GetExecutionSegment();
                     if (executionSegment == null)
                     {
@@ -82,21 +94,22 @@ namespace Elastic.Apm.Messaging.MassTransit
                         subType,
                         Constants.Apm.SendAction);
 
+                    Uri? address = isSendingResponse ? sendContext.SourceAddress : sendContext.DestinationAddress;
                     span.Context.Destination = new Destination
                     {
                         Address = sendContext.DestinationAddress.AbsoluteUri,  
                         Service = new Destination.DestinationService
                         {
-                            Resource = $"{subType}{sendContext.DestinationAddress.AbsolutePath}"
+                            Resource = $"{subType}{address.AbsolutePath}"
                         }
                     };
 
                     span.Context.Message = new Message
                     {
-                        Queue = new Queue { Name = sendContext.GetDestinationAbsoluteName() }
+                        Queue = new Queue { Name = address.GetAbsoluteName() }
                     };
 
-                    sendContext.SetTracingData(span);
+                    sendContext.SetTracingData(span, isSendingResponse);
 
                     if (hasTransaction)
                     {
@@ -123,8 +136,15 @@ namespace Elastic.Apm.Messaging.MassTransit
                 {
                     var transactionName = $"Receive {_options.GetReceiveLabel(receiveContext)}";
 
+                    var isReceivingResponse = receiveContext.TryGetMessageResponse(out var messageResponse);
+                    if (isReceivingResponse)
+                    {
+                        transactionName = $"Receive response {messageResponse}";
+                    }
+
                     ITransaction? transaction;
-                    if (_options.InlineReceiveTransaction)
+                    var inline = _options.InlineReceiveTransaction || receiveContext.WaitForResponse();
+                    if (inline)
                     {
                         DistributedTracingData? tracingData = receiveContext.GetTracingData();
 
@@ -167,6 +187,50 @@ namespace Elastic.Apm.Messaging.MassTransit
             catch (Exception ex)
             {
                 var message = $"{Constants.Events.ReceiveStart} instrumentation failed.";
+                _logger.Log(LogLevel.Error, message, ex, default);
+            }
+        }
+
+        private void HandleConsumeStart(Activity activity, object? context)
+        {
+            try
+            {
+                if (context is ConsumeContext consumeContext)
+                {
+                    var consumerType = activity.Tags.FirstOrDefault(t => t.Key == "consumer-type").Value;
+                    var name = string.IsNullOrEmpty(consumerType) ? "Consume" : $"Consume by {consumerType}";
+
+                    IExecutionSegment? executionSegment = _apmAgent.Tracer.GetExecutionSegment();
+                    if (executionSegment != null)
+                    {
+                        var subType = consumeContext.ReceiveContext.GetSpanSubType();
+                        ISpan span = executionSegment.StartSpan(
+                            name,
+                            Constants.Apm.Type,
+                            subType,
+                            Constants.Apm.ConsumeAction);
+
+                        span.Context.Destination = new Destination
+                        {
+                            Address = consumeContext.ReceiveContext.InputAddress.AbsoluteUri,
+                            Service = new Destination.DestinationService
+                            {
+                                Resource = $"{subType}{consumeContext.ReceiveContext.InputAddress.AbsolutePath}"
+                            }
+                        };
+
+                        span.Context.Message = new Message
+                        {
+                            Queue = new Queue { Name = consumeContext.ReceiveContext.GetInputAbsoluteName() }
+                        };
+
+                        _activities.TryAdd(activity.SpanId, span);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                var message = $"{Constants.Events.ConsumeStart} instrumentation failed.";
                 _logger.Log(LogLevel.Error, message, ex, default);
             }
         }
