@@ -39,19 +39,19 @@ namespace Elastic.Apm.Messaging.MassTransit
                     HandleSendStart(activity, value.Value);
                     return;
                 case Constants.Events.SendStop:
-                    HandleStop(activity.SpanId, activity.Duration);
+                    HandleStop(activity.SpanId);
                     return;
                 case Constants.Events.ReceiveStart:
                     HandleReceiveStart(activity, value.Value);
                     return;
                 case Constants.Events.ReceiveStop:
-                    HandleStop(activity.ParentSpanId, activity.Parent!.Duration);
+                    HandleStop(activity.ParentSpanId);
                     return;
                 case Constants.Events.ConsumeStart:
                     HandleConsumeStart(activity, value.Value);
                     return;
                 case Constants.Events.ConsumeStop:
-                    HandleStop(activity.SpanId, activity.Duration);
+                    HandleStop(activity.SpanId);
                     return;
             }
         }
@@ -97,7 +97,7 @@ namespace Elastic.Apm.Messaging.MassTransit
                     Uri? address = isSendingResponse ? sendContext.SourceAddress : sendContext.DestinationAddress;
                     span.Context.Destination = new Destination
                     {
-                        Address = sendContext.DestinationAddress.AbsoluteUri,  
+                        Address = sendContext.DestinationAddress.AbsoluteUri,
                         Service = new Destination.DestinationService
                         {
                             Resource = $"{subType}{address.AbsolutePath}"
@@ -117,7 +117,7 @@ namespace Elastic.Apm.Messaging.MassTransit
                     }
                     else
                     {
-                        _multipleActivities.TryAdd(activity.SpanId, new[] { span, executionSegment });
+                        _multipleActivities.TryAdd(ActivitySpanId.CreateFromString(executionSegment.Id.AsSpan()), new[] { span, executionSegment });
                     }
                 }
             }
@@ -235,7 +235,7 @@ namespace Elastic.Apm.Messaging.MassTransit
             }
         }
 
-        private void HandleStop(ActivitySpanId? spanId, TimeSpan duration)
+        private void HandleStop(ActivitySpanId? spanId)
         {
             if (spanId.HasValue)
             {
@@ -243,8 +243,7 @@ namespace Elastic.Apm.Messaging.MassTransit
                     _activities.TryRemove(spanId.Value, out IExecutionSegment? executionSegment) &&
                     executionSegment != null)
                 {
-                    executionSegment.Duration = duration.TotalMilliseconds;
-                    executionSegment.End();    
+                    executionSegment.End();
                 }
 
                 if (_multipleActivities.Any() &&
@@ -253,7 +252,6 @@ namespace Elastic.Apm.Messaging.MassTransit
                 {
                     for (var i = 0; i < executionSegments.Length; i++)
                     {
-                        executionSegments[i].Duration = duration.TotalMilliseconds;
                         executionSegments[i].End();
                     }
                 }
