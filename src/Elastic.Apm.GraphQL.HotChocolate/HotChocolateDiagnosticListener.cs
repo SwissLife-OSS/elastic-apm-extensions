@@ -45,9 +45,9 @@ namespace Elastic.Apm.GraphQL.HotChocolate
 
             try
             {
-                if (context.Path.Depth == 0 &&
-                    context.Document.Definitions.Count == 1 &&
-                    context.Document.Definitions[0] is OperationDefinitionNode { Name: { Value: "exec_batch" } })
+                if (context.Path.Length == 0 &&
+                    context.Operation.Document.Definitions.Count == 1 &&
+                    context.Operation.Document.Definitions[0] is OperationDefinitionNode { Name: { Value: "exec_batch" } })
                 {
                     IExecutionSegment? executionSegment = Agent.Tracer.GetExecutionSegment();
 

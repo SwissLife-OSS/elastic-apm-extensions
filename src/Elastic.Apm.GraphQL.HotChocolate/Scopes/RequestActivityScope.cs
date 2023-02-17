@@ -50,7 +50,7 @@ namespace Elastic.Apm.GraphQL.HotChocolate
                 _transaction.SetLabel("graphql.document.valid", _context.IsValidDocument);
                 _transaction.SetLabel("graphql.operation.id", _context.OperationId);
                 _transaction.SetLabel("graphql.operation.kind", _context.Operation?.Type.ToString());
-                _transaction.SetLabel("graphql.operation.name", _context.Operation?.Name?.Value);
+                _transaction.SetLabel("graphql.operation.name", _context.Operation?.Name);
 
                 if (_context.Result is IQueryResult result)
                 {
@@ -82,7 +82,7 @@ namespace Elastic.Apm.GraphQL.HotChocolate
             {
                 var displayName = new StringBuilder();
 
-                ISelectionSet rootSelectionSet = operation.GetRootSelectionSet();
+                ISelectionSet rootSelectionSet = operation.RootSelectionSet;
 
                 displayName.Append('{');
                 displayName.Append(' ');
@@ -108,10 +108,10 @@ namespace Elastic.Apm.GraphQL.HotChocolate
                 displayName.Append(' ');
                 displayName.Append('}');
 
-                if (operation.Name is { } name)
+                if (operation.Name != null)
                 {
                     displayName.Insert(0, ' ');
-                    displayName.Insert(0, name.Value);
+                    displayName.Insert(0, operation.Name);
                 }
 
                 displayName.Insert(0, ' ');
