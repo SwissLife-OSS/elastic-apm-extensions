@@ -2,8 +2,8 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
-using HotChocolate;
 using HotChocolate.Execution;
+using IError = HotChocolate.IError;
 
 namespace Elastic.Apm.GraphQL.HotChocolate
 {
@@ -13,7 +13,10 @@ namespace Elastic.Apm.GraphQL.HotChocolate
             this IExecutionResult? result,
             [NotNullWhen(true)] out IReadOnlyList<IError>? errors)
         {
-            errors = result?.Errors;
+            errors = null;
+            if (result is not IQueryResult queryResult) return false;
+
+            errors = queryResult?.Errors;
             return errors?.Any() ?? false;
         }
 
